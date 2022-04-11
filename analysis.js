@@ -105,6 +105,7 @@ function complexity(filePath)
 	var ast = esprima.parse(buf, options);
 
 	var i = 0;
+	let strings = 0
 
 	// A file level-builder:
 	var fileBuilder = new FileBuilder();
@@ -123,10 +124,46 @@ function complexity(filePath)
 			builder.StartLine    = node.loc.start.line;
 
 			builders[builder.FunctionName] = builder;
+
+			let params = node.params.length
+
+			builder.ParameterCount = params
+
+			let decisions = 1
+			let maxconditions = 0
+
+			traverseWithParents(node, function(node) 
+			{
+				if (isDecision(node)) 
+				{
+					let max = 1
+					//adding decisions
+					decisions += 1
+
+					traverseWithParents(node, function(node)
+					{
+						if (node.type==="LogicalExpression" && node.operator === "&&" || node.operator === "||")
+						{
+							max += 1
+						}
+					})
+					//setting max if its higher than previous
+					max > maxconditions ? (maxconditions = max) : (maxconditions = maxconditions)
+				}
+			})
+
+			builder.SimpleCyclomaticComplexity = decisions
+			builder.MaxConditions = maxconditions
+		}
+		if ( node.type === "Literal")
+		{
+			//Adding strings for part b
+			strings += 1
 		}
 
 	});
-
+	
+	fileBuilder.Strings = strings
 }
 
 // Helper function for counting children of node.
